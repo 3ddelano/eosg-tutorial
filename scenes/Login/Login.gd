@@ -45,11 +45,34 @@ func _ready() -> void:
 		print("Setup EOS logging successfully")
 
 	_devauth_login()
+	#_anonymous_login()
 
 
 func _on_logging_interface_callback(msg) -> void:
 	msg = EOS.Logging.LogMessage.from(msg)
 	print("[SDK] %s | %s" % [msg.category, msg.message])
+
+
+func _anonymous_login() -> void:
+	# Login using Device ID (no user interaction/credentials required)
+	print("make dir", DirAccess.make_dir_recursive_absolute("user://eosg-cache"))
+
+	var opts = EOS.Connect.CreateDeviceIdOptions.new()
+	opts.device_model = OS.get_name() + " " + OS.get_model_name()
+	EOS.Connect.ConnectInterface.create_device_id(opts)
+	await EOS.get_instance().connect_interface_create_device_id_callback
+
+	var credentials = EOS.Connect.Credentials.new()
+	credentials.token = null
+	credentials.type = EOS.ExternalCredentialType.DeviceidAccessToken
+
+	var login_options = EOS.Connect.LoginOptions.new()
+	login_options.credentials = credentials
+	var user_login_info = EOS.Connect.UserLoginInfo.new()
+	user_login_info.display_name = "Anon User"
+	login_options.user_login_info = user_login_info
+	EOS.Connect.ConnectInterface.login(login_options)
+	IEOS.connect_interface_login_callback.connect(_on_auth_interface_login_callback)
 
 
 func _devauth_login():
